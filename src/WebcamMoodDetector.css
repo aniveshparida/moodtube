@@ -1,0 +1,14 @@
+.webcam-container {
+  position: relative;
+  display: inline-block;
+}
+
+video {
+  border-radius: 12px;
+}
+
+canvas.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
