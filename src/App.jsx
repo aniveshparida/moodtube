@@ -1,36 +1,72 @@
-// App.jsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import WebcamMoodDetector from './WebcamMoodDetector';
 
 const moods = [
-  { label: 'Happy 😊', query: 'happy songs' },
-  { label: 'Sad 😢', query: 'sad songs' },
-  { label: 'Motivated 💪', query: 'motivational speeches' },
-  { label: 'Relaxed 😴', query: 'lofi chill beats' }
+  { 
+    label: 'Happy 😊', 
+    query: 'happy songs', 
+    themeColor: '#FFD93D',
+    gradientStart: '#FFD93D',
+    gradientEnd: '#FF6B6B',
+    darkColor: '#1a1a1a',
+    lightColor: '#2d2d2d'
+  },
+  { 
+    label: 'Sad 😢', 
+    query: 'sad songs', 
+    themeColor: '#4D6CFA',
+    gradientStart: '#4D6CFA',
+    gradientEnd: '#667eea',
+    darkColor: '#0f0f23',
+    lightColor: '#1a1a3a'
+  },
+  { 
+    label: 'Motivated 💪', 
+    query: 'motivational speeches', 
+    themeColor: '#E94560',
+    gradientStart: '#E94560',
+    gradientEnd: '#F38BA8',
+    darkColor: '#2d0a0f',
+    lightColor: '#3d1520'
+  },
+  { 
+    label: 'Relaxed 😴', 
+    query: 'lofi chill beats', 
+    themeColor: '#38B6FF',
+    gradientStart: '#38B6FF',
+    gradientEnd: '#7DD3FC',
+    darkColor: '#0a1a2d',
+    lightColor: '#152538'
+  }
 ];
 
-const YOUTUBE_API_KEY = 'AIzaSyBPVV0I2exnXdmLiLSmSU988FcnM9xROGc'; // replace with your actual API key
+const YOUTUBE_API_KEY = 'AIzaSyBPVV0I2exnXdmLiLSmSU988FcnM9xROGc';
 
 function App() {
   const [selectedMood, setSelectedMood] = useState(null);
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [moodHistory, setMoodHistory] = useState([]);
+  const [selectedVideoId, setSelectedVideoId] = useState(null);
+  const [moodProbabilities, setMoodProbabilities] = useState({});
+  const [detectionActive, setDetectionActive] = useState(false);
+  const [currentPlayingVideo, setCurrentPlayingVideo] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const fetchVideos = async (query) => {
       setLoading(true);
       try {
         const response = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=8&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`
         );
         const data = await response.json();
         const videoItems = data.items.map(item => ({
           id: item.id.videoId,
           title: item.snippet.title,
           thumbnail: item.snippet.thumbnails.medium.url,
-          channel: item.snippet.channelTitle
+          channel: item.snippet.channelTitle,
+          publishedAt: item.snippet.publishedAt
         }));
         setVideos(videoItems);
       } catch (error) {
@@ -42,93 +78,270 @@ function App() {
 
     if (selectedMood) {
       fetchVideos(selectedMood.query);
-
-      // Add to mood history
-      setMoodHistory(prevHistory => {
-        const newHistory = [selectedMood.label, ...prevHistory];
-        return newHistory.slice(0, 5); // keep last 5 moods
-      });
+      setSelectedVideoId(null);
+      
+      // Apply theme with smooth transition
+      const root = document.documentElement;
+      root.style.setProperty('--theme-color', selectedMood.themeColor);
+      root.style.setProperty('--gradient-start', selectedMood.gradientStart);
+      root.style.setProperty('--gradient-end', selectedMood.gradientEnd);
+      root.style.setProperty('--dark-bg', selectedMood.darkColor);
+      root.style.setProperty('--light-bg', selectedMood.lightColor);
+      
+      // Add theme class to body for mood-specific styling
+      document.body.className = `theme-${selectedMood.label.toLowerCase().split(' ')[0]}`;
     }
   }, [selectedMood]);
 
+  const handleMoodDetected = (detectedMood, probabilities) => {
+    setMoodProbabilities(probabilities);
+    
+    // Auto-select mood if confidence is high enough
+    const moodObj = moods.find((mood) => 
+      mood.label.toLowerCase().includes(detectedMood.toLowerCase())
+    );
+    
+    if (moodObj && probabilities[detectedMood] > 0.75) {
+      setSelectedMood(moodObj);
+    }
+  };
+
+  const playVideo = (video) => {
+    setSelectedVideoId(video.id);
+    setCurrentPlayingVideo(video);
+  };
+
+  const closeVideo = () => {
+    setSelectedVideoId(null);
+    setCurrentPlayingVideo(null);
+  };
+
+  const toggleDetection = () => {
+    setDetectionActive(!detectionActive);
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>MoodTube 🎵</h1>
-
-      <div className="webcam-container">
-        <WebcamMoodDetector
-          onMoodDetected={(moodLabel) => {
-            const moodObj = moods.find((mood) => mood.label === moodLabel);
-            if (moodObj) {
-              setSelectedMood(moodObj);
-            }
-          }}
-        />
-      </div>
-
-      <p>Select your mood:</p>
-
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '2rem' }}>
-        {moods.map((mood, index) => (
-          <button
-            key={index}
-            onClick={() => setSelectedMood(mood)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '20px',
-              border: 'none',
-              backgroundColor: selectedMood?.label === mood.label ? '#6366f1' : '#1f1f1f',
-              color: selectedMood?.label === mood.label ? 'white' : '#ffffff',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              fontSize: '1rem'
-            }}
+    <div className="app">
+      {/* Header */}
+      <header className="app-header">
+        <div className="header-left">
+          <button 
+            className="menu-button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            {mood.label}
+            ☰
           </button>
-        ))}
-      </div>
-
-      {selectedMood && (
-        <>
-          <h2>Selected Mood: {selectedMood.label}</h2>
-          <p>Showing videos for: <strong>{selectedMood.query}</strong></p>
-
-          {loading ? (
-            <p>Loading videos...</p>
-          ) : (
-            <div className="video-grid">
-              {videos.map(video => (
-                <div key={video.id} className="video-card">
-                  <a
-                    href={`https://www.youtube.com/watch?v=${video.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                    />
-                  </a>
-                  <h3>{video.title}</h3>
-                  <p>{video.channel}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="mood-history">
-            <h3>🕒 Mood History:</h3>
-            <ul>
-              {moodHistory.map((moodLabel, index) => (
-                <li key={index}>
-                  {index + 1}. {moodLabel}
-                </li>
-              ))}
-            </ul>
+          <h1 className="app-title">
+            <span className="logo-icon">🎵</span>
+            MoodTube
+          </h1>
+        </div>
+        
+        <div className="header-center">
+          <div className="search-container">
+            <input 
+              type="text" 
+              placeholder="Search for mood-based content..."
+              className="search-input"
+            />
+            <button className="search-button">🔍</button>
           </div>
-        </>
+        </div>
+
+        <div className="header-right">
+          <button 
+            className={`detection-toggle ${detectionActive ? 'active' : ''}`}
+            onClick={toggleDetection}
+          >
+            {detectionActive ? '📹 ON' : '📹 OFF'}
+          </button>
+        </div>
+      </header>
+
+      {/* Sidebar */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-section">
+          <h3>Your Moods</h3>
+          <div className="mood-list">
+            {moods.map((mood, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedMood(mood)}
+                className={`mood-item ${selectedMood?.label === mood.label ? 'active' : ''}`}
+              >
+                <span className="mood-emoji">{mood.label.split(' ')[1]}</span>
+                <span className="mood-name">{mood.label.split(' ')[0]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {Object.keys(moodProbabilities).length > 0 && (
+          <div className="sidebar-section">
+            <h3>Live Detection</h3>
+            <div className="mood-probabilities">
+              {Object.entries(moodProbabilities)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 4)
+                .map(([emotion, probability]) => (
+                  <div key={emotion} className="probability-bar">
+                    <span className="emotion-label">{emotion}</span>
+                    <div className="progress-track">
+                      <div 
+                        className="progress-fill"
+                        style={{ width: `${probability * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="probability-value">
+                      {Math.round(probability * 100)}%
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* Main Content */}
+      <main className={`main-content ${sidebarOpen ? 'sidebar-open' : ''}`}>
+        {/* Webcam Section */}
+        {detectionActive && (
+          <section className="webcam-section">
+            <div className="webcam-container">
+              <WebcamMoodDetector
+                onMoodDetected={handleMoodDetected}
+                isActive={detectionActive}
+              />
+              <div className="detection-info">
+                <h3>AI Mood Detection</h3>
+                <p>Let AI detect your mood automatically</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Mood Selection */}
+        <section className="mood-selection">
+          <h2>Choose Your Vibe</h2>
+          <div className="mood-buttons">
+            {moods.map((mood, index) => (
+              <button
+                key={index}
+                onClick={() => setSelectedMood(mood)}
+                className={`mood-button ${selectedMood?.label === mood.label ? 'active' : ''}`}
+                style={{
+                  '--button-color': mood.themeColor,
+                  '--button-gradient': `linear-gradient(135deg, ${mood.gradientStart}, ${mood.gradientEnd})`
+                }}
+              >
+                <span className="mood-icon">{mood.label.split(' ')[1]}</span>
+                <span className="mood-text">{mood.label.split(' ')[0]}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Content Section */}
+        {selectedMood && (
+          <section className="content-section">
+            <div className="section-header">
+              <h2>
+                <span className="section-icon">{selectedMood.label.split(' ')[1]}</span>
+                {selectedMood.label.split(' ')[0]} Vibes
+              </h2>
+              <p className="section-subtitle">
+                Curated {selectedMood.query} just for you
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="loading-container">
+                <div className="loading-spinner"></div>
+                <p>Finding perfect content for your mood...</p>
+              </div>
+            ) : (
+              <div className="videos-grid">
+                {videos.map(video => (
+                  <article
+                    key={video.id}
+                    className="video-card"
+                    onClick={() => playVideo(video)}
+                  >
+                    <div className="video-thumbnail">
+                      <img src={video.thumbnail} alt={video.title} />
+                      <div className="play-overlay">
+                        <div className="play-button">▶</div>
+                      </div>
+                      <div className="video-duration">4:23</div>
+                    </div>
+                    <div className="video-info">
+                      <h3 className="video-title">{video.title}</h3>
+                      <p className="video-channel">{video.channel}</p>
+                      <div className="video-meta">
+                        <span>2.1M views</span>
+                        <span>•</span>
+                        <span>3 days ago</span>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {!selectedMood && !detectionActive && (
+          <section className="welcome-section">
+            <div className="welcome-content">
+              <h2>Welcome to MoodTube</h2>
+              <p>Discover content that matches your mood</p>
+              <div className="welcome-actions">
+                <button 
+                  className="primary-button"
+                  onClick={toggleDetection}
+                >
+                  Start Mood Detection
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* Video Player Popup */}
+      {selectedVideoId && (
+        <div className="popup-overlay" onClick={closeVideo}>
+          <div className="popup-player" onClick={(e) => e.stopPropagation()}>
+            <div className="player-header">
+              <h3>{currentPlayingVideo?.title}</h3>
+              <button className="close-button" onClick={closeVideo}>✕</button>
+            </div>
+            <div className="player-container">
+              <iframe
+                width="100%"
+                height="500"
+                src={`https://www.youtube.com/embed/${selectedVideoId}?autoplay=1&rel=0`}
+                frameBorder="0"
+                allow="autoplay; encrypted-media; fullscreen"
+                allowFullScreen
+                title="YouTube Video Player"
+              ></iframe>
+            </div>
+            <div className="player-info">
+              <p className="channel-name">{currentPlayingVideo?.channel}</p>
+              <div className="player-actions">
+                <button className="action-button">👍 Like</button>
+                <button className="action-button">👎 Dislike</button>
+                <button className="action-button">📤 Share</button>
+                <button className="action-button">💾 Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Overlay when sidebar is open on mobile */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
     </div>
   );
 }
