@@ -3,14 +3,45 @@ import './App.css';
 import WebcamMoodDetector from './WebcamMoodDetector';
 
 const moods = [
-  { label: 'Happy 😊', query: 'happy songs', themeColor: '#FFD93D', gradientStart: '#FFD93D', gradientEnd: '#FF6B6B', darkColor: '#1a1a1a', lightColor: '#2d2d2d' },
-  { label: 'Sad 😢', query: 'sad songs', themeColor: '#4D6CFA', gradientStart: '#4D6CFA', gradientEnd: '#667eea', darkColor: '#0f0f23', lightColor: '#1a1a3a' },
-  { label: 'Motivated 💪', query: 'motivational speeches', themeColor: '#E94560', gradientStart: '#E94560', gradientEnd: '#F38BA8', darkColor: '#2d0a0f', lightColor: '#3d1520' },
-  { label: 'Relaxed 😴', query: 'lofi chill beats', themeColor: '#38B6FF', gradientStart: '#38B6FF', gradientEnd: '#7DD3FC', darkColor: '#0a1a2d', lightColor: '#152538' }
+  { 
+    label: 'Happy', 
+    query: 'happy songs', 
+    themeColor: '#FFD93D',
+    gradientStart: '#FFD93D',
+    gradientEnd: '#FF6B6B',
+    darkColor: '#1a1a1a',
+    lightColor: '#2d2d2d'
+  },
+  { 
+    label: 'Sad', 
+    query: 'sad songs', 
+    themeColor: '#4D6CFA',
+    gradientStart: '#4D6CFA',
+    gradientEnd: '#667eea',
+    darkColor: '#0f0f23',
+    lightColor: '#1a1a3a'
+  },
+  { 
+    label: 'Motivated', 
+    query: 'motivational speeches', 
+    themeColor: '#E94560',
+    gradientStart: '#E94560',
+    gradientEnd: '#F38BA8',
+    darkColor: '#2d0a0f',
+    lightColor: '#3d1520'
+  },
+  { 
+    label: 'Relaxed', 
+    query: 'lofi chill beats', 
+    themeColor: '#38B6FF',
+    gradientStart: '#38B6FF',
+    gradientEnd: '#7DD3FC',
+    darkColor: '#0a1a2d',
+    lightColor: '#152538'
+  }
 ];
 
-// 🟢 Replace with your actual API KEY
-const YOUTUBE_API_KEY = 'AIzaSyBPVV0I2exnXdmLiLSmSU988FcnM9xROGc';
+const YOUTUBE_API_KEY = 'AIzaSyBPVV0I2exnXdmLiLSmSU988FcnM9xROGc';  // put your real API key here
 
 function App() {
   const [selectedMood, setSelectedMood] = useState(null);
@@ -30,23 +61,14 @@ function App() {
           `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&key=${YOUTUBE_API_KEY}`
         );
         const data = await response.json();
-
-        if (data.error) {
-          console.error('YouTube API error:', data.error);
-          setVideos([]);
-        } else {
-          const videoItems = data.items
-            .filter(item => item.id.kind === 'youtube#video') // 🟢 Only videos
-            .map(item => ({
-              id: item.id.videoId,
-              title: item.snippet.title,
-              thumbnail: item.snippet.thumbnails.medium.url,
-              channel: item.snippet.channelTitle,
-              publishedAt: item.snippet.publishedAt
-            }));
-          setVideos(videoItems);
-        }
-
+        const videoItems = data.items.map(item => ({
+          id: item.id.videoId,
+          title: item.snippet.title,
+          thumbnail: item.snippet.thumbnails.medium.url,
+          channel: item.snippet.channelTitle,
+          publishedAt: item.snippet.publishedAt
+        }));
+        setVideos(videoItems);
       } catch (error) {
         console.error('Error fetching YouTube videos:', error);
       } finally {
@@ -57,7 +79,7 @@ function App() {
     if (selectedMood) {
       fetchVideos(selectedMood.query);
       setSelectedVideoId(null);
-
+      
       const root = document.documentElement;
       root.style.setProperty('--theme-color', selectedMood.themeColor);
       root.style.setProperty('--gradient-start', selectedMood.gradientStart);
@@ -65,15 +87,15 @@ function App() {
       root.style.setProperty('--dark-bg', selectedMood.darkColor);
       root.style.setProperty('--light-bg', selectedMood.lightColor);
 
-      document.body.className = `theme-${selectedMood.label.toLowerCase().split(' ')[0]}`;
+      document.body.className = `theme-${selectedMood.label.toLowerCase()}`;
     }
   }, [selectedMood]);
 
   const handleMoodDetected = (detectedMood, probabilities) => {
     setMoodProbabilities(probabilities);
 
-    const moodObj = moods.find((mood) =>
-      mood.label.toLowerCase().includes(detectedMood.toLowerCase())
+    const moodObj = moods.find((mood) => 
+      mood.label.toLowerCase() === detectedMood.toLowerCase()
     );
 
     if (moodObj && probabilities[detectedMood] > 0.75) {
@@ -99,19 +121,22 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-left">
-          <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-          <h1 className="app-title"><span className="logo-icon">🎵</span> MoodTube</h1>
-        </div>
-
-        <div className="header-center">
-          <div className="search-container">
-            <input type="text" placeholder="Search for mood-based content..." className="search-input" />
-            <button className="search-button">🔍</button>
-          </div>
+          <button 
+            className="menu-button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            ☰
+          </button>
+          <h1 className="app-title">
+            MoodTube
+          </h1>
         </div>
 
         <div className="header-right">
-          <button className={`detection-toggle ${detectionActive ? 'active' : ''}`} onClick={toggleDetection}>
+          <button 
+            className={`detection-toggle ${detectionActive ? 'active' : ''}`}
+            onClick={toggleDetection}
+          >
             {detectionActive ? '📹 ON' : '📹 OFF'}
           </button>
         </div>
@@ -122,9 +147,12 @@ function App() {
           <h3>Your Moods</h3>
           <div className="mood-list">
             {moods.map((mood, index) => (
-              <button key={index} onClick={() => setSelectedMood(mood)} className={`mood-item ${selectedMood?.label === mood.label ? 'active' : ''}`}>
-                <span className="mood-emoji">{mood.label.split(' ')[1]}</span>
-                <span className="mood-name">{mood.label.split(' ')[0]}</span>
+              <button
+                key={index}
+                onClick={() => setSelectedMood(mood)}
+                className={`mood-item ${selectedMood?.label === mood.label ? 'active' : ''}`}
+              >
+                <span className="mood-name">{mood.label}</span>
               </button>
             ))}
           </div>
@@ -135,15 +163,20 @@ function App() {
             <h3>Live Detection</h3>
             <div className="mood-probabilities">
               {Object.entries(moodProbabilities)
-                .sort(([, a], [, b]) => b - a)
+                .sort(([,a], [,b]) => b - a)
                 .slice(0, 4)
                 .map(([emotion, probability]) => (
                   <div key={emotion} className="probability-bar">
                     <span className="emotion-label">{emotion}</span>
                     <div className="progress-track">
-                      <div className="progress-fill" style={{ width: `${probability * 100}%` }}></div>
+                      <div 
+                        className="progress-fill"
+                        style={{ width: `${probability * 100}%` }}
+                      ></div>
                     </div>
-                    <span className="probability-value">{Math.round(probability * 100)}%</span>
+                    <span className="probability-value">
+                      {Math.round(probability * 100)}%
+                    </span>
                   </div>
                 ))}
             </div>
@@ -155,7 +188,10 @@ function App() {
         {detectionActive && (
           <section className="webcam-section">
             <div className="webcam-container">
-              <WebcamMoodDetector onMoodDetected={handleMoodDetected} isActive={detectionActive} />
+              <WebcamMoodDetector
+                onMoodDetected={handleMoodDetected}
+                isActive={detectionActive}
+              />
               <div className="detection-info">
                 <h3>AI Mood Detection</h3>
                 <p>Let AI detect your mood automatically</p>
@@ -177,8 +213,7 @@ function App() {
                   '--button-gradient': `linear-gradient(135deg, ${mood.gradientStart}, ${mood.gradientEnd})`
                 }}
               >
-                <span className="mood-icon">{mood.label.split(' ')[1]}</span>
-                <span className="mood-text">{mood.label.split(' ')[0]}</span>
+                <span className="mood-text">{mood.label}</span>
               </button>
             ))}
           </div>
@@ -187,8 +222,10 @@ function App() {
         {selectedMood && (
           <section className="content-section">
             <div className="section-header">
-              <h2><span className="section-icon">{selectedMood.label.split(' ')[1]}</span> {selectedMood.label.split(' ')[0]} Vibes</h2>
-              <p className="section-subtitle">Curated {selectedMood.query} just for you</p>
+              <h2>{selectedMood.label} Vibes</h2>
+              <p className="section-subtitle">
+                Curated {selectedMood.query} just for you
+              </p>
             </div>
 
             {loading ? (
@@ -199,16 +236,20 @@ function App() {
             ) : (
               <div className="videos-grid">
                 {videos.map(video => (
-                  <article key={video.id} className="video-card" onClick={() => playVideo(video)}>
+                  <article
+                    key={video.id}
+                    className="video-card"
+                    onClick={() => playVideo(video)}
+                  >
                     <div className="video-thumbnail">
                       <img src={video.thumbnail} alt={video.title} />
-                      <div className="play-overlay"><div className="play-button">▶</div></div>
-                      <div className="video-duration">4:23</div>
+                      <div className="play-overlay">
+                        <div className="play-button">▶</div>
+                      </div>
                     </div>
                     <div className="video-info">
                       <h3 className="video-title">{video.title}</h3>
                       <p className="video-channel">{video.channel}</p>
-                      <div className="video-meta"><span>2.1M views</span> <span>•</span> <span>3 days ago</span></div>
                     </div>
                   </article>
                 ))}
@@ -223,7 +264,12 @@ function App() {
               <h2>Welcome to MoodTube</h2>
               <p>Discover content that matches your mood</p>
               <div className="welcome-actions">
-                <button className="primary-button" onClick={toggleDetection}>Start Mood Detection</button>
+                <button 
+                  className="primary-button"
+                  onClick={toggleDetection}
+                >
+                  Start Mood Detection
+                </button>
               </div>
             </div>
           </section>
@@ -250,12 +296,6 @@ function App() {
             </div>
             <div className="player-info">
               <p className="channel-name">{currentPlayingVideo?.channel}</p>
-              <div className="player-actions">
-                <button className="action-button">👍 Like</button>
-                <button className="action-button">👎 Dislike</button>
-                <button className="action-button">📤 Share</button>
-                <button className="action-button">💾 Save</button>
-              </div>
             </div>
           </div>
         </div>
